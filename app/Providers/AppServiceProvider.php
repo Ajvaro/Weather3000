@@ -23,6 +23,13 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register()
     {
-        //
+        $this->app->singleton(\GuzzleHttp\ClientInterface::class, function () {
+            return new \GuzzleHttp\Client([
+                'base_uri' => config('openweather.base_uri'),
+                'headers' => [
+                    'Accept' => 'application/json'
+                ]
+            ]);
+        });
     }
 }

@@ -2,21 +2,44 @@
 
 namespace App\Commands;
 
-use function GuzzleHttp\Psr7\str;
-use Illuminate\Support\Facades\Log;
-use Zttp\Zttp;
-use Zttp\ZttpRequest;
-use Illuminate\Console\Scheduling\Schedule;
+use GuzzleHttp\ClientInterface;
+use GuzzleHttp\Exception\ClientException;
 use LaravelZero\Framework\Commands\Command;
 
 class GetWeatherCommand extends Command
 {
+    /**
+     * @var ClientInterface
+     */
+    private $client;
+
+    /**
+     * @var
+     */
     private $option;
+    /**
+     * @var
+     */
     private $city;
+    /**
+     * @var
+     */
     private $lat;
+    /**
+     * @var
+     */
     private $lng;
 
-    const BASE_URL = 'https://api.openweathermap.org/data/2.5/weather';
+    /**
+     * GetWeatherCommand constructor.
+     * @param ClientInterface $client
+     */
+    public function __construct(ClientInterface $client)
+    {
+        parent::__construct();
+
+        $this->client = $client;
+    }
     /**
      * The signature of the command.
      *
@@ -29,7 +52,7 @@ class GetWeatherCommand extends Command
      *
      * @var string
      */
-    protected $description = 'Shows weather for Nis';
+    protected $description = 'Shows weather for location or city';
 
     /**
      * Execute the console command.
@@ -44,8 +67,8 @@ class GetWeatherCommand extends Command
             ? $this->searchByCoordinates()
             : $this->searchByCity());
 
-       if($response) {
-           [$headers, $rows] = $this->getTablePayload(json_decode($response, true));
+        if($response) {
+           [$headers, $rows] = $this->getTablePayload($response);
            $this->info("Hello there! Your weather report is ready:");
            $this->table($headers, $rows);
        }
@@ -86,16 +109,6 @@ class GetWeatherCommand extends Command
     }
 
     /**
-     * @param int $direction
-     * @return string
-     */
-    private function convertWindToCardinals(int $direction): string
-    {
-        $cardinals = ["N", "NE", "E", "SE", "S", "SW", "W", "NW", "N"];
-        return $cardinals[(int) round(($direction % 360) / 45)];
-    }
-
-    /**
      *
      */
     private function searchByCoordinates()
@@ -103,31 +116,42 @@ class GetWeatherCommand extends Command
         $this->setLatitude();
         $this->setLongitude();
 
-        $response = Zttp::get(
-            self::BASE_URL . "?lat=" . $this->lat . "&lon=" . $this->lng . "&units=". config('openweather.units') ."&appid=" . config('openweather.api_key')
-        );
+        $params = [
+            'query' => [
+                'lat' => $this->lat,
+                'lon' => $this->lng,
+                'units' => config('openweather.units'),
+                'appid' => config('openweather.api_key')
+            ]
+        ];
 
-        $this->setResponse($response);
+        return $this->fetchData($params);
     }
 
+
     /**
-     *
+     * @return bool|mixed
      */
     private function searchByCity()
     {
         $this->setCity();
 
-        $response = Zttp::get(
-            self::BASE_URL . "?q=" . $this->city . "&units=" . config('openweather.units') . "&appid=" . config('openweather.api_key')
-        );
+        $params = [
+            'query' => [
+                'q' => $this->city,
+                'units' => config('openweather.units'),
+                'appid' => config('openweather.api_key')
+            ]
+        ];
 
-        $this->setResponse($response);
+        return $this->fetchData($params);
     }
+
 
     /**
      *
      */
-    private function setLatitude()
+    private function setLatitude(): void
     {
         $this->lat = (float) $this->argument('lat');
 
@@ -136,10 +160,8 @@ class GetWeatherCommand extends Command
         }
     }
 
-    /**
-     *
-     */
-    private function setLongitude()
+
+    private function setLongitude(): void
     {
         $this->lng = (float) $this->argument('lng');
 
@@ -148,9 +170,7 @@ class GetWeatherCommand extends Command
         }
     }
 
-    /**
-     *
-     */
+
     private function setCity()
     {
         $this->city = (string) $this->argument('city');
@@ -161,27 +181,27 @@ class GetWeatherCommand extends Command
     }
 
     /**
-     * @param $response
-     * @return bool
+     * @param int $direction
+     * @return string
      */
-    private function setResponse($response)
+    private function convertWindToCardinals(int $direction): string
     {
-        if($response->isOk()) {
-            return $response;
-        } else {
-            $this->error('Something went wrong');
-            return false;
-        }
+        $cardinals = ["N", "NE", "E", "SE", "S", "SW", "W", "NW", "N"];
+        return $cardinals[(int) round(($direction % 360) / 45)];
     }
 
     /**
-     * Define the command's schedule.
-     *
-     * @param  \Illuminate\Console\Scheduling\Schedule $schedule
-     * @return void
+     * @param array $params
+     * @return bool|mixed
      */
-    public function schedule(Schedule $schedule)
+    private function fetchData(array $params = [])
     {
-        // $schedule->command(static::class)->everyMinute();
+        try {
+            $response = $this->client->get('weather', $params);
+            return json_decode($response->getBody(), true);
+        } catch (ClientException $e) {
+            $this->error(json_decode($e->getResponse()->getBody(), true)['message']);
+            return false;
+        }
     }
 }
