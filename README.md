@@ -61,6 +61,6 @@ return [
 
 Run 
 
-``` php weather3000 weather ```
+``` ~ php weather3000 weather ```
 
 choose option and enter city name or latitude and longitude
