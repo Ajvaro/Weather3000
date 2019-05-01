@@ -59,8 +59,13 @@ return [
 ];
 ```
 
-Run 
+Run:
 
 ``` php weather3000 weather ```
 
-choose option and enter city name or latitude and longitude
+choose option and enter city name, or latitude and longitude.
+
+To rename your application run
+
+``` php app:rename <new_app_name> ```
+
