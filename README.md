@@ -38,4 +38,29 @@ Laravel Zero is an open-source software licensed under the [MIT license](https:/
 
 ## Instructions
 
+Clone repository to your local environment and run:
+
 ``` composer install ```
+
+After installing your dependecies set your .env
+
+``` cp .env.example .env ```
+
+Set your Open Weather API key
+
+``` OPENWEATHER_KEY=your_api_key ```
+
+You can manually set units in config/openweather.php
+
+``` 
+return [
+    'api_key' => env('OPENWEATHER_KEY', null),
+    'units' => 'metric'
+];
+```
+
+Run 
+
+``` php weather3000 weather ```
+
+choose option and enter city name or latitude and longitude
