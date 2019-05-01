@@ -22,7 +22,7 @@ class GetWeatherCommand extends Command
      *
      * @var string
      */
-    protected $signature = 'weather {name=Artisan} {lat?} {lng?} {city?}';
+    protected $signature = 'weather {lat?} {lng?} {city?} {name=Artisan}';
 
     /**
      * The description of the command.
@@ -44,13 +44,17 @@ class GetWeatherCommand extends Command
             ? $this->searchByCoordinates()
             : $this->searchByCity());
 
-        [$headers, $rows] = $this->getTablePayload(json_decode($response, true));
-        $this->info("Hello there! Your weather report is ready:");
-        $this->table($headers, $rows);
-        // Notify the user on the Operating System that the weather arrived.
-        $this->notify('Weather info!', 'Weather information just arrived!');
+       if($response) {
+           [$headers, $rows] = $this->getTablePayload(json_decode($response, true));
+           $this->info("Hello there! Your weather report is ready:");
+           $this->table($headers, $rows);
+       }
     }
 
+    /**
+     * @param array $response
+     * @return array
+     */
     private function getTablePayload(array $response)
     {
         $headers = ['Information', 'Value'];
@@ -58,9 +62,14 @@ class GetWeatherCommand extends Command
         $rows = collect($todayWeather)->map(function ($value, $title) {
             return ['Information' => $title, 'Value' => $value];
         })->toArray();
+
         return [$headers, $rows];
     }
 
+    /**
+     * @param array $response
+     * @return \Illuminate\Support\Collection
+     */
     private function transformResponse(array $response): \Illuminate\Support\Collection
     {
         return collect([
@@ -76,30 +85,48 @@ class GetWeatherCommand extends Command
         ]);
     }
 
+    /**
+     * @param int $direction
+     * @return string
+     */
     private function convertWindToCardinals(int $direction): string
     {
         $cardinals = ["N", "NE", "E", "SE", "S", "SW", "W", "NW", "N"];
         return $cardinals[(int) round(($direction % 360) / 45)];
     }
 
+    /**
+     *
+     */
     private function searchByCoordinates()
     {
         $this->setLatitude();
         $this->setLongitude();
 
-        return Zttp::get(
+        $response = Zttp::get(
             self::BASE_URL . "?lat=" . $this->lat . "&lon=" . $this->lng . "&units=". config('openweather.units') ."&appid=" . config('openweather.api_key')
         );
+
+        $this->setResponse($response);
     }
 
+    /**
+     *
+     */
     private function searchByCity()
     {
         $this->setCity();
-        return Zttp::get(
+
+        $response = Zttp::get(
             self::BASE_URL . "?q=" . $this->city . "&units=" . config('openweather.units') . "&appid=" . config('openweather.api_key')
         );
+
+        $this->setResponse($response);
     }
 
+    /**
+     *
+     */
     private function setLatitude()
     {
         $this->lat = (float) $this->argument('lat');
@@ -109,6 +136,9 @@ class GetWeatherCommand extends Command
         }
     }
 
+    /**
+     *
+     */
     private function setLongitude()
     {
         $this->lng = (float) $this->argument('lng');
@@ -118,12 +148,29 @@ class GetWeatherCommand extends Command
         }
     }
 
+    /**
+     *
+     */
     private function setCity()
     {
         $this->city = (string) $this->argument('city');
 
         if(! $this->argument('city')) {
             $this->city = $this->ask('Please enter city');
+        }
+    }
+
+    /**
+     * @param $response
+     * @return bool
+     */
+    private function setResponse($response)
+    {
+        if($response->isOk()) {
+            return $response;
+        } else {
+            $this->error('Something went wrong');
+            return false;
         }
     }
 
