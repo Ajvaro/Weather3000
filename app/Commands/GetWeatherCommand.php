@@ -13,21 +13,9 @@ class GetWeatherCommand extends Command
      */
     private $client;
 
-    /**
-     * @var
-     */
     private $option;
-    /**
-     * @var
-     */
     private $city;
-    /**
-     * @var
-     */
     private $lat;
-    /**
-     * @var
-     */
     private $lng;
 
     /**
@@ -40,6 +28,7 @@ class GetWeatherCommand extends Command
 
         $this->client = $client;
     }
+
     /**
      * The signature of the command.
      *
@@ -63,15 +52,15 @@ class GetWeatherCommand extends Command
     {
         $this->option = $this->choice('Search by:', ['city', 'coordinates']);
 
-       $response = ($this->option == 'coordinates'
+        $response = ($this->option == 'coordinates'
             ? $this->searchByCoordinates()
             : $this->searchByCity());
 
         if($response) {
-           [$headers, $rows] = $this->getTablePayload($response);
-           $this->info("Hello there! Your weather report is ready:");
-           $this->table($headers, $rows);
-       }
+            [$headers, $rows] = $this->getTablePayload($response);
+            $this->info("Hello there! Your weather report is ready:");
+            $this->table($headers, $rows);
+        }
     }
 
     /**
@@ -99,18 +88,16 @@ class GetWeatherCommand extends Command
             'city' => $response['name'],
             'weather' => $response['weather'][0]['main'],
             'details' => $response['weather'][0]['description'],
-            'temperature' => (int) $response['main']['temp'] . 'C',
+            'temperature' => (int)$response['main']['temp'] . 'C',
             'pressure' => $response['main']['pressure'] . ' mbar',
             'humidity' => $response['main']['humidity'] . '%',
-            'min' => (int) $response['main']['temp_min']. 'C',
-            'max' => (int) $response['main']['temp_max']. 'C',
-            'wind' => $response['wind']['speed'] . 'm/s ' . (array_key_exists('deg', $response['wind']) ? $this->convertWindToCardinals((int) $response['wind']['deg']) : '')
+            'min' => (int)$response['main']['temp_min'] . 'C',
+            'max' => (int)$response['main']['temp_max'] . 'C',
+            'wind' => $response['wind']['speed'] . 'm/s '
+                            . (array_key_exists('deg', $response['wind']) ? $this->convertWindToCardinals((int)$response['wind']['deg']) : '')
         ]);
     }
 
-    /**
-     *
-     */
     private function searchByCoordinates()
     {
         $this->setLatitude();
@@ -129,9 +116,6 @@ class GetWeatherCommand extends Command
     }
 
 
-    /**
-     * @return bool|mixed
-     */
     private function searchByCity()
     {
         $this->setCity();
@@ -148,14 +132,11 @@ class GetWeatherCommand extends Command
     }
 
 
-    /**
-     *
-     */
     private function setLatitude(): void
     {
         $this->lat = (float) $this->argument('lat');
 
-        if(! $this->argument('lat')) {
+        if (!$this->argument('lat')) {
             $this->lat = $this->ask('Please enter latitude');
         }
     }
@@ -165,7 +146,7 @@ class GetWeatherCommand extends Command
     {
         $this->lng = (float) $this->argument('lng');
 
-        if(! $this->argument('lng')) {
+        if (!$this->argument('lng')) {
             $this->lng = $this->ask('Please enter longitude');
         }
     }
@@ -175,7 +156,7 @@ class GetWeatherCommand extends Command
     {
         $this->city = (string) $this->argument('city');
 
-        if(! $this->argument('city')) {
+        if (!$this->argument('city')) {
             $this->city = $this->ask('Please enter city');
         }
     }
