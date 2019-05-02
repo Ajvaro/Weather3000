@@ -71,7 +71,7 @@ class GetWeatherCommand extends Command
     {
         $headers = ['Information', 'Value'];
         $todayWeather = $this->transformResponse($response);
-        $rows = collect($todayWeather)->map(function ($value, $title) {
+        $rows = $todayWeather->map(function ($value, $title) {
             return ['Information' => $title, 'Value' => $value];
         })->toArray();
 
